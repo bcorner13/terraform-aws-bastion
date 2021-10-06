@@ -1,5 +1,5 @@
 #!/bin/bash -x
-yum -y update --security
+yum -y update
 
 ##########################
 ## ENABLE SSH RECORDING ##
@@ -136,6 +136,7 @@ while read line; do
       echo "$line" >> ~/keys_installed && \
       echo "`date --date="today" "+%Y-%m-%d %H-%M-%S"`: Creating user account for $USER_NAME ($line)" >> $LOG_FILE
     fi
+    # create a sudoers file for the users
 
     # Copy the public key from S3, if an user account was created from this key
     if [ -f ~/keys_installed ]; then
@@ -147,6 +148,9 @@ while read line; do
       fi
     fi
 
+    if [ ! -f /etc/sudoers.d/$USER_NAME ]; then
+      echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL">/etc/sudoers.d/$USER_NAME&&chmod 440 /etc/sudoers.d/$USER_NAME| visudo -cf /etc/sudoers.d/$USER_NAME
+    fi
   fi
 done < ~/keys_retrieved_from_s3
 

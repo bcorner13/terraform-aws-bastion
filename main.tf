@@ -7,9 +7,7 @@ resource "aws_kms_alias" "alias" {
   target_key_id = aws_kms_key.key.arn
 }
 
-data "aws_kms_alias" "kms-ebs" {
-  name = "alias/aws/ebs"
-}
+
 
 resource "aws_s3_bucket" "bucket" {
   bucket = var.bucket_name
@@ -23,7 +21,6 @@ resource "aws_s3_bucket" "bucket" {
       }
     }
   }
-
 
   force_destroy = var.bucket_force_destroy
 
@@ -63,7 +60,7 @@ resource "aws_s3_bucket" "bucket" {
 resource "aws_s3_bucket_object" "bucket_public_keys_readme" {
   bucket     = aws_s3_bucket.bucket.id
   key        = "public-keys/README.txt"
-  content    = "Drop here the ssh public keys of the instances you want to control"
+  content    = "Drop here the ssh public keys of the instances you want to control. Follow the format of username.pem"
   kms_key_id = aws_kms_key.key.arn
 }
 
@@ -120,17 +117,6 @@ resource "aws_security_group_rule" "ingress_instances" {
   security_group_id = aws_security_group.private_instances_security_group.id
 }
 
-data "aws_iam_policy_document" "assume_policy_document" {
-  statement {
-    actions = [
-      "sts:AssumeRole"
-    ]
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
 
 resource "aws_iam_role" "bastion_host_role" {
   name                 = var.bastion_iam_role_name
@@ -139,47 +125,6 @@ resource "aws_iam_role" "bastion_host_role" {
   permissions_boundary = var.bastion_iam_permissions_boundary
 }
 
-data "aws_iam_policy_document" "bastion_host_policy_document" {
-
-  statement {
-    actions = [
-      "s3:PutObject",
-      "s3:PutObjectAcl"
-    ]
-    resources = ["${aws_s3_bucket.bucket.arn}/logs/*"]
-  }
-
-  statement {
-    actions = [
-      "s3:GetObject"
-    ]
-    resources = ["${aws_s3_bucket.bucket.arn}/public-keys/*"]
-  }
-
-  statement {
-    actions = [
-      "s3:ListBucket"
-    ]
-    resources = [
-    aws_s3_bucket.bucket.arn]
-
-    condition {
-      test     = "ForAnyValue:StringEquals"
-      values   = ["public-keys/"]
-      variable = "s3:prefix"
-    }
-  }
-
-  statement {
-    actions = [
-
-      "kms:Encrypt",
-      "kms:Decrypt"
-    ]
-    resources = [aws_kms_key.key.arn]
-  }
-
-}
 
 resource "aws_iam_policy" "bastion_host_policy" {
   name   = var.bastion_iam_policy_name
@@ -336,4 +281,36 @@ resource "aws_autoscaling_group" "bastion_auto_scaling_group" {
   }
 
   depends_on = [aws_s3_bucket.bucket]
+}
+resource "aws_iam_policy" "ec2-connect" {
+  name        = "my-bastion"
+  path        = "/"
+  description = "ec2-connect for bastion"
+  policy = jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : "ec2-instance-connect:SendSSHPublicKey",
+          "Resource" : "arn:aws:ec2:us-east-1:727535128727:instance/*",
+          "Condition" : {
+            "StringEquals" : {
+              "aws:ResourceTag/Owner" : "brad.corner"
+            }
+          }
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "ec2:DescribeInstances",
+          "Resource" : "*"
+        }
+      ]
+    }
+  )
+}
+
+resource "aws_iam_user_policy_attachment" "test-attachment" {
+  user       = data.aws_iam_user.username.user_name
+  policy_arn = aws_iam_policy.ec2-connect.arn
 }
