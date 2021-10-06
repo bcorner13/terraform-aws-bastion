@@ -129,8 +129,9 @@ Auto Scaling Groups -> Instance refresh . Keep in mind all data from instance wi
 
 Authors
 -------
+Module rewrite by [Bradley Corner](https://git.vbrick.com)
 
-Module managed by [Guimove](https://github.com/Guimove).
+Module source originally by [Guimove](https://github.com/Guimove).
 
 License
 -------

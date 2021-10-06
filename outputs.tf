@@ -25,3 +25,6 @@ output "private_instances_security_group" {
 output "bastion_auto_scaling_group_name" {
   value = aws_autoscaling_group.bastion_auto_scaling_group.name
 }
+output "aws_subnets_subnets" {
+  value = data.aws_subnet.subnets
+}
