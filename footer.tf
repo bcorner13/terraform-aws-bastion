@@ -1,6 +1,6 @@
 /**
  * ## Contacts
- * * [Bradley Corner](mailto:brad.corner@vbrick.com)
+ * * [Bradley Corner](mailto:cornerb2020@gmail.com)
  *
  * <hr/>
  * This documentation generated with terraform-docs
